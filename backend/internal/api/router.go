@@ -17,6 +17,7 @@ func NewRouter() *gin.Engine {
 
 	api_routes.InitIndexRoutes(r.Group("/"))
 	api_routes.InitWsRoutes(r.Group("/ws"))
+	api_routes.InitQuestRoutes(r.Group("/quests"))
 
 	return r
 }
