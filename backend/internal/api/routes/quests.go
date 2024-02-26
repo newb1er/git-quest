@@ -3,7 +3,6 @@ package api_routes
 import (
 	"git-quest-be/internal/api/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,14 +14,29 @@ var questRoutes = []Routes{
 		Handler: getQuests,
 	},
 	{
-		Path:    "/:id",
+		Path:    "/:title",
 		Method:  http.MethodGet,
 		Handler: getQuest,
 	},
 	{
-		Path:    "/:id/start",
+		Path:    "/:title",
 		Method:  http.MethodPost,
 		Handler: startQuest,
+	},
+	{
+		Path:    "/:title/prompt",
+		Method:  http.MethodGet,
+		Handler: getQuestPrompt,
+	},
+	{
+		Path:    "/:title/validate",
+		Method:  http.MethodPost,
+		Handler: validateQuest,
+	},
+	{
+		Path:    "/:title",
+		Method:  http.MethodDelete,
+		Handler: teardownQuest,
 	},
 }
 
@@ -39,16 +53,9 @@ func getQuests(c *gin.Context) {
 }
 
 func getQuest(c *gin.Context) {
-	id := c.Param("id")
-	num, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
-		return
-	}
+	title := c.Param("title")
 
-	q, err := services.GetQuest(num)
+	q, err := services.GetQuest(title)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": err,
@@ -60,16 +67,9 @@ func getQuest(c *gin.Context) {
 }
 
 func startQuest(c *gin.Context) {
-	id := c.Param("id")
-	num, err := strconv.Atoi(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
-		return
-	}
+	title := c.Param("title")
 
-	q, err := services.GetQuest(num)
+	q, err := services.GetQuest(title)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": err,
@@ -89,4 +89,73 @@ func startQuest(c *gin.Context) {
 		"message": "quest started",
 		"path":    q.GetPath(),
 	})
+}
+
+func getQuestPrompt(c *gin.Context) {
+	title := c.Param("title")
+
+	q, err := services.GetQuest(title)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"prompt": q.Prompt(),
+	})
+}
+
+func validateQuest(c *gin.Context) {
+	title := c.Param("title")
+
+	q, err := services.GetQuest(title)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	pass, err := q.Validate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	if !pass {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "quest failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "quest passed",
+	})
+}
+
+func teardownQuest(c *gin.Context) {
+	title := c.Param("title")
+
+	q, err := services.GetQuest(title)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	err = q.Teardown()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
 }

@@ -14,8 +14,8 @@ func GetQuests() []quests.QuestMeta {
 	return metas
 }
 
-func GetQuest(id int) (quests.Quest, error) {
-	q, ok := quests.Quests[id]
+func GetQuest(title string) (quests.Quest, error) {
+	q, ok := quests.Quests[title]
 	if !ok {
 		return nil, fmt.Errorf("quest not found")
 	}
